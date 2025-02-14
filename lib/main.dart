@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+
 void main() {
   Supabase.initialize(
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndicXB3YnJ6bXVrYWR2cWl1bnJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk0MTA5OTMsImV4cCI6MjA1NDk4Njk5M30.Jvm32OQkKVVM73KSdEvfAkExD_f6y5KQOjyWxLEPEX4',
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 
 class MyHomePage extends StatefulWidget {
 
@@ -63,6 +65,22 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const Text(
+              Align(
+                alignment: AlignmentDirectional(-0.06, 0.38),
+                child: FFButtonWidget( 
+                  onPressed: () {
+                    print('BUtton pressed ...');
+
+                  },
+                  text: 'Login',
+                  options: FFButtonoptions( 
+                    height: 40,
+                    padding: EdgeInsetsDirectional.fromSTEB(16, 0, 16, 0),
+                    iconpadding: EdgeInsets.fromSTEB(0, 0, 0, 0),
+                    color: FlutterFlowTheme.of(context).primaryBackground
+                  )
+                ),
+              )
               'kamu dapat menambahkan tombol disini:',
             ),
             Text(
