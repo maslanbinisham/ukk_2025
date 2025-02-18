@@ -51,10 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } else if (emailController.text == 'petugas' &&
         passwordController.text == '123') {
       // Jika login sebagai petugas, navigasi ke halaman PetugasHomeScreen
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => PetugasHomeScreen()),
-      );
+      
     } else {
       // Jika login gagal, tampilkan pesan error menggunakan SnackBar
       ScaffoldMessenger.of(context).showSnackBar(
@@ -266,31 +263,55 @@ SizedBox(height: 30),
 }
 
 // Halaman Admin
+
+
 class AdminHomeScreen extends StatefulWidget {
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  _AdminHomeScreenState createState() => _AdminHomeScreenState();
 }
 
-class _HomeScreenState extends State<AdminHomeScreen> {
+class _AdminHomeScreenState extends State<AdminHomeScreen> {
   int _selectedIndex = 0;
+  String _searchQuery = '';
 
-  // Daftar halaman untuk setiap tab
-  final List<Widget> _pages = [
-    DetailPenjualanPage(), // Menampilkan halaman Detail Penjualan
-    Center(child: Text('Transaksi')), // Ganti dengan widget untuk halaman Produk 
-    Center(child: Text('Pelanggan')), // Ganti dengan widget untuk halaman Penjualan
-    Center(child: Text('Stok barang')), // Ganti dengan widget untuk halaman Pelanggan
-    StockPage(), // Halaman untuk Stok Barang
+  final List<String> pageTitles = [
+    'Produk',
+    'Transaksi',
+    'Pelanggan',
+    'Stok Barang',
   ];
 
-  // Mengubah indeks ketika tab ditekan
+  final List<Widget> _pages = [
+    DetailPenjualanPage(), // Halaman Detail Penjualan
+    Center(child: Text('Transaksi')), // Halaman Transaksi
+    Center(child: Text('Pelanggan')), // Halaman Pelanggan
+    StockPage(), // Halaman Stok Barang
+  ];
+
+  List<Widget> getFilteredPages() {
+    if (_searchQuery.isEmpty) {
+      return _pages;
+    }
+    return _pages
+        .where((page) =>
+            pageTitles[_pages.indexOf(page)]
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase()))
+        .toList();
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  // Fungsi untuk menangani klik tombol Tambah
+  void _updateSearchQuery(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
+  }
+
   void _onAddButtonPressed() {
     Navigator.push(
       context,
@@ -298,7 +319,6 @@ class _HomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
-  // Fungsi untuk menambah barang ke dalam daftar (called from AddItemPage)
   void _onItemAdded(Map<String, dynamic> newItem) {
     setState(() {
       DetailPenjualanPage.addItem(newItem);
@@ -307,11 +327,27 @@ class _HomeScreenState extends State<AdminHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Beranda Penjualan'),
-        backgroundColor: Colors.blue,
+    List<Widget> filteredPages = getFilteredPages();
+
+      return Scaffold(
+    appBar: AppBar(
+      backgroundColor: Colors.blue,
+      title: Text(
+        "Beranda",
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.search),
+          onPressed: () {
+            showSearch(
+              context: context,
+              delegate: SearchPageDelegate(pageTitles, _onItemTapped),
+            );
+          },
+        ),
+      ],
+    ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -353,18 +389,11 @@ class _HomeScreenState extends State<AdminHomeScreen> {
               ),
             ),
             ListTile(
-              leading: Icon(Icons.home),
-              title: Text('Beranda'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
               leading: Icon(Icons.shopping_cart),
               title: Text('Stok Barang'),
               onTap: () {
                 setState(() {
-                  _selectedIndex = 4;
+                  _selectedIndex = 3;
                 });
                 Navigator.pop(context);
               },
@@ -373,7 +402,6 @@ class _HomeScreenState extends State<AdminHomeScreen> {
               leading: Icon(Icons.shopping_cart),
               title: Text('Penjualan'),
               onTap: () {
-                // Tambahkan navigasi ke halaman Penjualan
                 Navigator.pop(context);
               },
             ),
@@ -381,7 +409,6 @@ class _HomeScreenState extends State<AdminHomeScreen> {
               leading: Icon(Icons.settings),
               title: Text('Pengaturan'),
               onTap: () {
-                // Tambahkan navigasi ke halaman Pengaturan
                 Navigator.pop(context);
               },
             ),
@@ -400,9 +427,11 @@ class _HomeScreenState extends State<AdminHomeScreen> {
           ],
         ),
       ),
-      body: _pages[_selectedIndex], // Body mengikuti halaman yang dipilih
+      body: filteredPages.isNotEmpty
+          ? filteredPages[_selectedIndex]
+          : Center(child: Text('Tidak ditemukan')),
       floatingActionButton: FloatingActionButton(
-        onPressed: _onAddButtonPressed, // Fungsi saat tombol ditekan
+        onPressed: _onAddButtonPressed, // Tetap ada tombol tambah
         backgroundColor: Colors.blue,
         child: Icon(Icons.add),
       ),
@@ -429,9 +458,78 @@ class _HomeScreenState extends State<AdminHomeScreen> {
             icon: Icon(Icons.storage),
             label: 'Stok Barang',
           ),
-          
         ],
       ),
+    );
+  }
+}
+
+class SearchPageDelegate extends SearchDelegate<String> {
+  final List<String> items;
+  final Function(int) onItemSelected;
+
+  SearchPageDelegate(this.items, this.onItemSelected);
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: Icon(Icons.clear),
+        onPressed: () {
+          query = '';
+        },
+      ),
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(
+      icon: Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, '');
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    final results = items
+        .where((item) => item.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+
+    return ListView.builder(
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          title: Text(results[index]),
+          onTap: () {
+            int selectedIndex = items.indexOf(results[index]);
+            onItemSelected(selectedIndex);
+            close(context, results[index]);
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    final suggestions = items
+        .where((item) => item.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+
+    return ListView.builder(
+      itemCount: suggestions.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          title: Text(suggestions[index]),
+          onTap: () {
+            query = suggestions[index];
+            showResults(context);
+          },
+        );
+      },
     );
   }
 }
@@ -465,10 +563,6 @@ class _DetailPenjualanPageState extends State<DetailPenjualanPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Detail Produk'),
-        backgroundColor: Colors.blue,
-      ),
       body: ListView.builder(
         itemCount: DetailPenjualanPage.soldItems.length, // Jumlah item dalam daftar penjualan
         itemBuilder: (context, index) {
@@ -543,161 +637,6 @@ class _DetailPenjualanPageState extends State<DetailPenjualanPage> {
     );
   }
 }
-
-// untuk pencarian 
-
-class halaman extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Search Example',
-      theme: ThemeData(
-        primarySwatch: Colors.red,
-      ),
-      home: SearchPage(),
-    );
-  }
-}
-
-
-class SearchPage extends StatefulWidget {
-  @override
-  _SearchPageState createState() => _SearchPageState();
-}
-
-class _SearchPageState extends State<SearchPage> {
-  final List<String> items = [
-    'Apple', 'Banana', 'Cherry', 'Date', 'Fig', 'Grape', 'Lemon', 'Mango', 'Orange'
-  ];
-  List<String> filteredItems = [];
-
-  @override
-  void initState() {
-    super.initState();
-    filteredItems = items;
-  }
-
-  void filterSearch(String query) {
-    setState(() {
-      filteredItems = items
-          .where((item) => item.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Search Example'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.search),
-            onPressed: () {
-              showSearch(context: context, delegate: ItemSearchDelegate(items));
-            },
-          )
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              onChanged: filterSearch,
-              decoration: InputDecoration(
-                hintText: 'Search...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                prefixIcon: Icon(Icons.search),
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredItems.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(filteredItems[index]),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ItemSearchDelegate extends SearchDelegate<String> {
-  final List<String> items;
-
-  ItemSearchDelegate(this.items);
-
-  @override
-  List<Widget> buildActions(BuildContext context) {
-    return [
-      IconButton(
-        icon: Icon(Icons.clear),
-        onPressed: () {
-          query = '';
-        },
-      ),
-    ];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: Icon(Icons.arrow_back),
-      onPressed: () {
-        close(context, '');
-      },
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    final List<String> results = items
-        .where((item) => item.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-
-    return ListView.builder(
-      itemCount: results.length,
-      itemBuilder: (context, index) {
-        return ListTile(
-          title: Text(results[index]),
-          onTap: () {
-            close(context, results[index]);
-          },
-        );
-      },
-    );
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    final List<String> suggestions = items
-        .where((item) => item.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-
-    return ListView.builder(
-      itemCount: suggestions.length,
-      itemBuilder: (context, index) {
-        return ListTile(
-          title: Text(suggestions[index]),
-          onTap: () {
-            query = suggestions[index];
-            showResults(context);
-          },
-        );
-      },
-    );
-  }
-}
-
 
 // Halaman untuk mengedit barang
 class EditItemPage extends StatefulWidget {
@@ -849,6 +788,7 @@ class _AddItemPageState extends State<AddItemPage> {
               onPressed: _addItem,
               child: Text('Tambah Barang'),
             ),
+            SizedBox(height: 30),
           ],
         ),
       ),
@@ -927,8 +867,6 @@ class _AddStockPageState extends State<AddStockPage> {
     );
   }
 }
-
-
 
 
 
@@ -1037,145 +975,7 @@ class _StockPageState extends State<StockPage> {
 }
 
 // Halaman Petugas
-class PetugasHomeScreen extends StatefulWidget {
-  @override
-  _PetugasHomeScreenState createState() => _PetugasHomeScreenState();
-}
 
-class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
-  int _selectedIndex = 0;
-
-  // Daftar halaman untuk setiap tab
-  final List<Widget> _pages = [
-    Center(child: Text('Detail Transaksi')), // Ganti dengan widget Detail Jualan
-    Center(child: Text('Produk')), // Ganti dengan widget untuk halaman Buah
-    Center(child: Text('Penjualan')), // Ganti dengan widget untuk halaman Penjualan
-    Center(child: Text('Pelanggan')), // Ganti dengan widget untuk halaman Pelanggan
-  ];
-
-  // Mengubah indeks ketika tab ditekan
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Beranda Penjualan'),
-        backgroundColor: Colors.blue,
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.person,
-                      size: 40,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    'Petugas',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    'maslan@gmail.com',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.home),
-              title: Text('Beranda'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.shopping_cart),
-              title: Text('Penjualan'),
-              onTap: () {
-                // Tambahkan navigasi ke halaman Penjualan
-                Navigator.pop(context);
-              },
-            ),
-           
-            ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('Pengaturan'),
-              onTap: () {
-                // Tambahkan navigasi ke halaman Pengaturan
-                Navigator.pop(context);
-              },
-            ),
-            Divider(),
-            ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Logout'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-      body: _pages[_selectedIndex], // Body mengikuti halaman yang dipilih
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long),
-            label: 'Detail Transaksi',
-            backgroundColor: Color(0xFF1B5E20),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Produk',
-            backgroundColor: Color(0xFF1B5E20),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
-            label: 'Penjualan',
-            backgroundColor: Color(0xFF1B5E20),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Pelanggan',
-            backgroundColor: Color(0xFF1B5E20),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class MyApp extends StatelessWidget {
   @override
@@ -1331,4 +1131,4 @@ class RegisterScreen extends StatelessWidget {
   }
 }
 
-// Halaman untuk mengelola Produk
+
